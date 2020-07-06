@@ -4,78 +4,106 @@ const client = new Discord.Client();
 const utils = require("discord.js-utils");
 
 //prefix = '!'
-const { prefix, second } = require('./config.json');
+const { prefix, second, color_pfx } = require('./config.json');
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 })
 
-client.on('message', msg => {
-	if (!msg.content.startsWith(prefix)) return;
+client.on('message', message => {
+	if (!message.content.startsWith(prefix)) return;
 
-	const args = msg.content.slice(prefix.length).split(/ +/);
+	const args = message.content.slice(prefix.length).split(/ +/);
 	const cmd = args.shift().toLowerCase();
 	
 	switch(cmd) {
 	case 'ping':
-		msg.channel.send('Pong');
-		utils.random.dog().then(console.log); 
+		message.channel.send('Pong');
+		var imghere
+		utils.random.dog().then(console.log)//then(message.channel.send)
+							.catch(console.error);
 		break;
 	case 'beep':
-		msg.channel.send('Boop');
+		message.channel.send('Boop');
 		break;
 	case 'server':		 
-		msg.channel.send(`Server name: ${msg.guild.name}\nTotal members: ${msg.guild.memberCount}`);
+		message.channel.send(`Server name: ${message.guild.name}\nTotal members: ${message.guild.memberCount}`);
 		break;
 	case 'user': 
-		msg.channel.send(`Your username: ${msg.author.username}\nYour ID: ${msg.author.id}`);
+		message.channel.send(`Your username: ${message.author.username}\nYour ID: ${message.author.id}`);
 		break;
 	case 'avatar':
-		if (!msg.mentions.users.size) {
-			return msg.channel.send(`Your avatar: <${msg.author.displayAvatarURL({ format: "png", dynamic: true })}>`);
+		if (!message.mentions.users.size) {
+			return message.channel.send(`Your avatar: <${message.author.displayAvatarURL({ format: "png", dynamic: true })}>`);
 		}
-		const avatarList = msg.mentions.users.map(user => {
+		const avatarList = message.mentions.users.map(user => {
 			return `${user.username}'s avatar: <${user.displayAvatarURL({ format: "png", dynamic: true })}>`;
 			});
-		msg.channel.send(avatarList);
+		message.channel.send(avatarList);
 		
 		break;		
 	case 'doggo':
-		utils.random.dog().then(console.log); 	 
-		const doggoEmbed = new Discord.MessageEmbed()
+		utils.random.dog().then(url => {
+			const doggoEmbed = new Discord.MessageEmbed()
 								.setTitle('Here\'s your doggo')
-								.setImage('https://random.dog/cdfe24b3-8ba8-44b1-a5f4-4174936dabb6.jpg');
+								.setImage(url);
 
-		msg.channel.send(doggoEmbed);
+								message.channel.send(doggoEmbed);})
+		
 		break;
-	case 'role':
+	case 'color':
 		
 		if(args){
-			let role_name = `r_${args[0]}`
-			msg.channel.send(role_name);
-			// does never find role..
-			let role = msg.member.guild.roles.fetch(role_name);
-			if( !role )
+		let role_name = `${color_pfx}${args[0]}`
+			message.channel.send(role_name);
+			
+			// check if already exists:
+			let searchRole = message.member.guild.roles.cache.find(role => role.name === role_name);
+			
+			if( !searchRole )
 			{
-				msg.channel.send(`that role does not exist`);
-				msg.guild.roles.create({ data: { name: role_name,
+				// create role and add to user
+				message.guild.roles.create({ data: { name: role_name,
 												color: args[0]} })
-												.then(role => msg.member.roles.add(role))
+												.then(role => message.member.roles.add(role))
 												.catch(console.error);
+				
+				message.channel.send(`Congratulations, you got the color!`);
 			}
 			else{
-				msg.channel.send(`that role exists`);
-				msg.channel.send(`found: ${role_name}`);
+				// if exists: check if member has it
+				
+				if(message.member.roles.cache.has(searchRole.id)) {
+					message.member.roles.remove(searchRole).catch(console.error);
+					message.channel.send(`You have that color, removing it!`);
+					
+				} else {
+					message.member.roles.add(searchRole).catch(console.error);
+					message.channel.send(`Congratulations, you got the color!`);
+					
+				}
 			}
-			//message.member.addRole(role);
-			msg.channel.send(`you want: ${role_name}`);
-			//
+			
+			
+		}
+		
+		break;
+	case 'insult':
+		if (!message.mentions.users.size) {
+			message.channel.send(`Du besch es arschloch ${message.author}!`);
+		}
+		else
+		{
+			const insluts = message.mentions.users.map(user => {
+			return `Du besch en Vollidiot <@${user.id}>!`;
+			});
+			message.channel.send(insluts);
 			
 		}
 		
 		break;
 	default:
-		msg.channel.send(`I don't understand ...  "${cmd}"`);
+		message.channel.send(`I don't understand ...  "${cmd}"`);
 	}
 })
 
